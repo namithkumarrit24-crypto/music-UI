@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Music Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: #fff;
+    }
+
+    /* Glassmorphism Player Container */
+    .player {
+        width: 350px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Album Art */
+    .img-container {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        margin: 0 auto;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 5px solid rgba(255,255,255,0.2);
+    }
+
+    .img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Animation specifically controlled by JS class */
+    .img-container.rotate {
+        animation: rotate 10s linear infinite;
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Song Info */
+    .song-info {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .song-info h2 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .song-info p {
+        font-size: 14px;
+        color: #e0e0e0;
+        letter-spacing: 1px;
+    }
+
+    /* Progress Area */
+    .progress-container {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 10px 0;
+        height: 6px;
+        width: 100%;
+    }
+
+    .progress {
+        background: #fff;
+        border-radius: 5px;
+        height: 100%;
+        width: 0%; /* JS will change this */
+        transition: width 0.1s linear;
+        position: relative;
+    }
+
+    /* The little dot at end of progress bar */
+    .progress::after {
+        content: '';
+        position: absolute;
+        right: -5px;
+        top: -3px;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+
+    .time-box {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #eee;
+    }
+
+    /* Controls */
+    .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        background: none;
+        border: none;
+        color: #eee;
+        font-size: 20px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn:hover {
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+    .btn-big {
+        font-size: 45px;
+        color: #fff;
+    }
+
+    /* Playlist Section */
+    .playlist {
+        margin-top: 25px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 15px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    .playlist h4 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: rgba(255,255,255,0.7);
+    }
+
+    /* Scrollbar styling */
+    .playlist::-webkit-scrollbar {
+        width: 5px;
+    }
+    .playlist::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.3);
+        border-radius: 10px;
+    }
+
+    .track {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+
+    .track:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    .track.active {
+        background: rgba(255,255,255,0.25);
+        border-left: 4px solid #fff;
+    }
+
+    .track i {
+        margin-right: 10px;
+        font-size: 10px;
+    }
+
+</style>
+</head>
+<body>
+
+<div class="player">
+    
+    <div class="img-container" id="img-container">
+        <img src="https://picsum.photos/200/200?random=1" alt="Album Art" id="cover">
+    </div>
+
+    <div class="song-info">
+        <h2 id="title">Loading...</h2>
+        <p id="artist">Artist Name</p>
+    </div>
+
+    <audio id="audio"></audio>
+
+    <div class="progress-container" id="progress-container">
+        <div class="progress" id="progress"></div>
+    </div>
+    
+    <div class="time-box">
+        <span id="currTime">0:00</span>
+        <span id="durTime">0:00</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="prev" title="Previous"><i class="fas fa-backward"></i></button>
+        <button class="btn btn-big" id="play" title="Play/Pause"><i class="fas fa-play"></i></button>
+        <button class="btn" id="next" title="Next"><i class="fas fa-forward"></i></button>
+    </div>
+
+    <div class="playlist">
+        <h4>Up Next</h4>
+        <div id="playlist-items">
+            </div>
+    </div>
+
+</div>
+
+<script>
+    // 1. Data Structure: Add your own MP3 URLs here
+    // Note: Since I cannot host files for you, these are placeholders.
+    // Replace 'src' with local file paths (e.g., 'music/song1.mp3') or valid URLs.
+    const songs = [
+        {
+            title: "Summer Breeze",
+            artist: "Sunny Vibes",
+            cover: "https://picsum.photos/200/200?random=1",
+            src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+        },
+        {
+            title: "Night Drive",
+            artist: "Synthwave King",
+            cover: "https://picsum.photos/200/200?random=2",
+            src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+        },
+        {
+            title: "Deep Focus",
+            artist: "Coding Beats",
+            cover: "https://picsum.photos/200/200?random=3",
+            src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+        }
+    ];
+
+    // 2. Select DOM Elements
+    const player = document.querySelector('.player');
+    const imgContainer = document.getElementById('img-container');
+    const cover = document.getElementById('cover');
+    const title = document.getElementById('title');
+    const artist = document.getElementById('artist');
+    const audio = document.getElementById('audio');
+    const progress = document.getElementById('progress');
+    const progressContainer = document.getElementById('progress-container');
+    const currTime = document.getElementById('currTime');
+    const durTime = document.getElementById('durTime');
+    const playBtn = document.getElementById('play');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const playlistItems = document.getElementById('playlist-items');
+
+    // 3. State Variables
+    let songIndex = 0;
+
+    // 4. Functions
+    
+    // Initialize Player
+    function loadSong(song) {
+        title.innerText = song.title;
+        artist.innerText = song.artist;
+        audio.src = song.src;
+        cover.src = song.cover;
+        
+        // Update playlist highlighting
+        renderPlaylist();
+    }
+
+    function playSong() {
+        player.classList.add('playing');
+        imgContainer.classList.add('rotate');
+        playBtn.querySelector('i').classList.remove('fa-play');
+        playBtn.querySelector('i').classList.add('fa-pause');
+        audio.play();
+    }
+
+    function pauseSong() {
+        player.classList.remove('playing');
+        imgContainer.classList.remove('rotate');
+        playBtn.querySelector('i').classList.add('fa-play');
+        playBtn.querySelector('i').classList.remove('fa-pause');
+        audio.pause();
+    }
+
+    function prevSong() {
+        songIndex--;
+        if (songIndex < 0) {
+            songIndex = songs.length - 1;
+        }
+        loadSong(songs[songIndex]);
+        playSong();
+    }
+
+    function nextSong() {
+        songIndex++;
+        if (songIndex > songs.length - 1) {
+            songIndex = 0;
+        }
+        loadSong(songs[songIndex]);
+        playSong();
+    }
+
+    function updateProgress(e) {
+        const { duration, currentTime } = e.srcElement;
+        const progressPercent = (currentTime / duration) * 100;
+        progress.style.width = `${progressPercent}%`;
+
+        // Update Time Display
+        if(duration){
+            const durMinutes = Math.floor(duration / 60);
+            const durSeconds = Math.floor(duration % 60);
+            durTime.innerText = `${durMinutes}:${durSeconds < 10 ? '0' : ''}${durSeconds}`;
+        }
+        
+        const currMinutes = Math.floor(currentTime / 60);
+        const currSeconds = Math.floor(currentTime % 60);
+        currTime.innerText = `${currMinutes}:${currSeconds < 10 ? '0' : ''}${currSeconds}`;
+    }
+
+    function setProgress(e) {
+        const width = this.clientWidth;
+        const clickX = e.offsetX;
+        const duration = audio.duration;
+        audio.currentTime = (clickX / width) * duration;
+    }
+
+    function renderPlaylist() {
+        playlistItems.innerHTML = '';
+        songs.forEach((song, index) => {
+            const div = document.createElement('div');
+            div.classList.add('track');
+            if(index === songIndex) div.classList.add('active');
+            
+            div.innerHTML = `
+                <i class="fas fa-music"></i>
+                <span>${song.title} - ${song.artist}</span>
+            `;
+            
+            // Allow clicking playlist items
+            div.addEventListener('click', () => {
+                songIndex = index;
+                loadSong(songs[songIndex]);
+                playSong();
+            });
+
+            playlistItems.appendChild(div);
+        });
+    }
+
+    // 5. Event Listeners
+    playBtn.addEventListener('click', () => {
+        const isPlaying = player.classList.contains('playing');
+        if (isPlaying) {
+            pauseSong();
+        } else {
+            playSong();
+        }
+    });
+
+    // Change Song
+    prevBtn.addEventListener('click', prevSong);
+    nextBtn.addEventListener('click', nextSong);
+
+    // Time/Song Update
+    audio.addEventListener('timeupdate', updateProgress);
+    
+    // Click on progress bar
+    progressContainer.addEventListener('click', setProgress);
+
+    // Song Ends -> Auto Next
+    audio.addEventListener('ended', nextSong);
+
+    // Initial Load
+    loadSong(songs[songIndex]);
+
+</script>
+
+</body>
+</html>
